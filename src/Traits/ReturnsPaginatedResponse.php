@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 trait ReturnsPaginatedResponse
@@ -25,7 +26,7 @@ trait ReturnsPaginatedResponse
     ): Response {
         $data = (new Pagination($query, $config, $resource))->process();
 
-        if ($data instanceof JsonResponse) {
+        if ($data instanceof BinaryFileResponse) {
             return $data;
         }
 
