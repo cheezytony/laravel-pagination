@@ -62,6 +62,14 @@ class Pagination
     protected Collection $data;
 
     /**
+     * The total number of records in the database.
+     *
+     * @var int|null
+     */
+    protected int|null $total = null;
+
+
+    /**
      * Initialize pagination.
      *
      * @param EloquentBuilder|QueryBuilder|Relation $query
@@ -327,7 +335,7 @@ class Pagination
     protected function getMeta(): array
     {
         return [
-            'total' => $this->data->count(),
+            'total' => $this->getTotal(),
             'per_page' => $this->getPageLimit(),
             'current_page' => $this->getPage(),
             'last_page' => $this->getPages(),
@@ -340,7 +348,20 @@ class Pagination
 
     protected function getPages(): float
     {
-        return ceil($this->data->count() / $this->getPageLimit());
+        return ceil($this->getTotal() / $this->getPageLimit());
+    }
+
+    protected function getTotal(): int
+    {
+        if (!$this->total) {
+            $this->total = Cache::tags($this->getCacheTags())
+                ->remember(
+                    $this->getCacheKey() . ':count',
+                    $this->getCacheDuration(),
+                    fn () => $this->query->count(),
+                );
+        }
+        return $this->total;
     }
 
     protected function getCacheDuration(): int
