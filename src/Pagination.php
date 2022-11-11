@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use JetBrains\PhpStorm\ArrayShape;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -118,7 +119,7 @@ class Pagination
                 $this->getCacheKey(),
                 $this->getCacheDuration(),
                 function () {
-                    if (static::EXPORT_METHOD['filtered'] === request()->query('export')) {
+                    if (static::EXPORT_METHOD['filtered'] === $this->getExportType()) {
                         $this
                             ->applySearch()
                             ->applyFilterByColumn()
@@ -303,6 +304,11 @@ class Pagination
         return (int)is_string($pageLimit) ? $pageLimit : self::LIMIT;
     }
 
+    protected function getExportType(): string|null
+    {
+        return request()->query('export');
+    }
+
     protected function getOffsetEnd(): int
     {
         return $this->getPage() * $this->getPageLimit();
@@ -345,25 +351,27 @@ class Pagination
     protected function getCacheKey(): string
     {
         $tableName = $this->query->getModel()->getTable();
+        $columnFilters = array_map(function ($column) {
+            return $column . '=' . request()->query($column);
+        }, $this->getFilterColumns());
         $keys = [
-            $tableName,
-            $this->getPage(),
-            $this->getSearchQuery(),
-            $this->getFilter(),
-            "{$this->getRangeStart()}-{$this->getRangeEnd()}",
-            $this->getOrderBy(),
-            $this->getOrder(),
-            $this->getPageLimit()
+            "table=$tableName",
+            "page={$this->getPage()}",
+            'query=' . Str::snake($this->getSearchQuery()),
+            "filter={$this->getFilter()}",
+            "range={$this->getRangeColumn()}:{$this->getRangeStart()}-{$this->getRangeEnd()}",
+            "order-by={$this->getOrderBy()}",
+            "order={$this->getOrder()}",
+            "limit={$this->getPageLimit()}",
+            "export={$this->getExportType()}",
+            'column-filters=' . implode(',', $columnFilters)
         ];
-        return implode(
-            '_',
-            array_filter($keys, static fn($value) => $value != null)
-        );
+        return implode('&', $keys);
     }
 
     protected function getCacheTags(): array
     {
         $tableName = $this->query->getModel()->getTable();
-        return  $this->config['cacheTags'] ?? [$tableName];
+        return $this->config['cacheTags'] ?? [$tableName];
     }
 }
