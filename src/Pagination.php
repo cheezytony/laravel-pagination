@@ -103,14 +103,15 @@ class Pagination
             $this->getCacheKey(),
             $this->getCacheDuration(),
             function () {
-                return $this
+                $this
                     ->applySearch()
                     ->applyFilterByColumn()
                     ->applyFilters()
                     ->applyRange()
-                    ->applySorting()
-                    ->applyLimit()
-                    ->getData();
+                    ->applySorting();
+
+
+                return $this->applyLimit($this->getQuery())->get();
             }
         );
 
@@ -136,7 +137,7 @@ class Pagination
                             ->applySorting();
                     }
 
-                    return $this->getData();
+                    return $this->query->get();
                 }
             );
 
@@ -149,7 +150,6 @@ class Pagination
             },
         ), $this->getExportFilename());
     }
-
 
     protected function applySearch(): Pagination
     {
@@ -211,14 +211,17 @@ class Pagination
         return $this;
     }
 
-    protected function applyLimit(): Pagination
+    protected function applyLimit(): EloquentBuilder|QueryBuilder|Relation
     {
-        $this->query
+        return $this->getQuery()
             ->offset($this->getOffsetStart())
             ->limit($this->getOffsetEnd());
-        return $this;
     }
 
+    protected function getQuery(): EloquentBuilder|QueryBuilder|Relation
+    {
+        return clone $this->query;
+    }
 
     protected function getRangeColumn(): ?string
     {
@@ -283,11 +286,6 @@ class Pagination
             "%$searchQuery%",
         );
         return $this;
-    }
-
-    protected function getData(): Collection|array
-    {
-        return $this->query->get();
     }
 
     protected function getExportFilename(): string
@@ -358,7 +356,7 @@ class Pagination
                 ->remember(
                     $this->getCacheKey() . ':count',
                     $this->getCacheDuration(),
-                    fn () => $this->query->count(),
+                    fn () => $this->getQuery()->count(),
                 );
         }
         return $this->total;
