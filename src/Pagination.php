@@ -111,7 +111,7 @@ class Pagination
                     ->applySorting();
 
 
-                return $this->applyLimit($this->getQuery())->get();
+                return $this->applyLimit()->get();
             }
         );
 

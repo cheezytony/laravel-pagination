@@ -33,9 +33,7 @@ trait ReturnsPaginatedResponse
         return new JsonResponse([
             'success' => true,
             'message' => 'Data fetched successfully',
-            'data' => [
-                'datatable' => $data
-            ]
+            'data' => $data
         ]);
     }
 }
